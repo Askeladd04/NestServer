@@ -1,16 +1,19 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CatsController } from './cats.controller';
-import { Controller, Get } from '@nestjs/common';
-import { CatsModule } from './cats/cats.module';
+import { TaskModule } from './task/task.module';
+import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
+import { VerifyModule } from './verify/verify.module';
 
 @Module({
-  imports: [CatsModule],
-  controllers: [AppController, CatsController],
-  providers: [AppService],
+    imports: [TaskModule, UserModule, AuthModule , JwtModule.register({
+        global: true,
+        secret: process.env.SECRET_VALUE,
+        signOptions: { expiresIn: '20m' }
+    }), VerifyModule],
+    controllers: [AppController],
+    providers: [AppService],
 })
 export class AppModule {}
-
-
-
