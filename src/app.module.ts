@@ -13,6 +13,7 @@ import { VerifyModule } from './verify/verify.module';
         secret: process.env.SECRET_VALUE,
         signOptions: { expiresIn: '20m' }
     }), VerifyModule],
+
     controllers: [AppController],
     providers: [AppService],
 })

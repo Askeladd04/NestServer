@@ -7,7 +7,11 @@ dotenv.config();
 async function bootstrap() {
     NestFactory.create(AppModule, { abortOnError: false });
     const app = await NestFactory.create(AppModule);
-    app.enableCors();
+    app.enableCors({
+        origin: 'http://localhost:3000', 
+        methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', 
+        credentials: true, 
+      });
     app.use(cookieParser());
     await app.listen(4000);
 }

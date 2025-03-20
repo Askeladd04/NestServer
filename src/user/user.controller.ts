@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Post, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Controller, Delete, Get, } from '@nestjs/common';
 import { UserService } from './user.service';
 import { Response } from 'src/auth/auth.module';
 import { PrismaService } from 'src/prisma.service';
@@ -14,12 +14,12 @@ export class UserController {
 
     @Get('all')
     async getCheck() {
-        return this.prisma.user.findMany();
+        return await this.prisma.user.findMany();
     }
 
     @Delete('all')
-    deleteAllUser() {
-        this.userService.deleteAllUser();
+   async deleteAllUser() {
+        await this.userService.deleteAllUser();
         return 'all user deleted!!';
     }
 }

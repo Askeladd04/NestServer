@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Request, Res, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Get, HttpStatus, Post, Request, Res, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
 import { AuthGuard } from './guards/auth.guard';
 import { AuthService } from './auth.service';
 import { UserService } from 'src/user/user.service';
@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from 'src/user/user.dto';
 import { Response } from 'express';
 import { VerifyService } from 'src/verify/verify.service';
+import { PrismaService } from 'src/prisma.service';
 
 @Controller('auth')
 export class AuthController {
@@ -14,6 +15,7 @@ export class AuthController {
         private readonly auth: AuthService,
         private readonly userService: UserService,
         private readonly verifyService: VerifyService,
+        private readonly prisma: PrismaService
     ) {}
 
     @Get()
@@ -25,35 +27,24 @@ export class AuthController {
     @Post('login')
     @UsePipes(new ValidationPipe())
     async signIn(@Body() dto: LoginDto, @Res() res: Response) {
-        try {
-            const result = await this.auth.login(dto);
-
-            if (result.statusCode === 0) {
-                res.cookie('access_token', result.data!.token, {
-                    httpOnly: true,
-                    secure: false,
-                    maxAge: 60 * 60 * 1000,
-                    path: '/',
-                });
-
-                const { token, ...data } = result.data!;
-                return res.status(200).json(data);
-            }
-
-            return res.status(400).json(result);
-        } catch (e) {
-            throw e;
-        }
+        return await this.auth.login(dto , res)
     }
+
+    
 
     @Post('register')
     @UsePipes(new ValidationPipe())
     async signUp(@Body() dto: CreateUserDto) {
         try {
-            return await this.userService.createUser(dto);
+            return await this.auth.register(dto);
         } catch (e) {
             throw e;
         }
+    }
+
+    @Post('refresh_token')
+    async refreshToken(){
+        
     }
 
     @Post('verify')
@@ -67,12 +58,16 @@ export class AuthController {
     }
 
     @Post('verify/send')
-    async sendVerificationCode(@Body() {email}: {email: string})    {
-        try {
-            const newCode = await this.verifyService.generateCode(email);
-            return await this.verifyService.sendVerifyCode(email, newCode);
-        } catch (e) {
-            throw e;
+    async sendVerificationCode(@Body() {email}: {email: string}) {
+            const newCode = await this.verifyService.generateCode();
+            const updateUserCode = await this.prisma.user.update({where: {email} , data: {code: newCode.hashedCode}})
+            if(updateUserCode){
+                try{
+                    await this.verifyService.sendVerifyCode(email, newCode.hashedCode);
+                    return {statusCode: 0 , message: "Success"}
+                }catch(e){
+                    throw e
+                }
+            }else return {statusCode: HttpStatus.FORBIDDEN , message: "User is not register!"}
         }
-    }
 }

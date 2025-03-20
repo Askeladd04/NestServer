@@ -1,5 +1,5 @@
 import * as nodemailer from 'nodemailer';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, HttpStatus, Injectable } from '@nestjs/common';
 import { hashCode } from 'utils/hashCode';
 import { PrismaService } from 'src/prisma.service';
 import { VerifyDto } from './dto/verify.dto';
@@ -13,28 +13,28 @@ export class VerifyService {
             service: 'gmail',
             auth: {
                 user: 'merdanov1605@gmail.com',
-                pass: 'zsjk bmjb yybk mwqx',
+                pass: 'zsjk bmjb yybk mwqx', 
             },
         });
         try {
-            await transporter.sendMail({
+           const info =  await transporter.sendMail({
                 from: 'merdanov1605@gmail.com',
                 to: email,
                 subject: 'Your verification code!!',
                 text: `${code}`,
             });
-            return { statusCode: 0, message: 'Success' };
+            console.log(info)
+            if(!info.messageId) throw new BadRequestException()
+            return true;
         } catch (error) {
             throw new BadRequestException();
         }
     }
 
-    async generateCode(email: string) {
-        const getCode = Math.random().toString(10).substring(2, 8);
-        const hashedCode = await hashCode(getCode, 5);
-        const result = await this.prisma.user.update({ where: { email }, data: { code: hashedCode } });
-        if (!result) throw new BadRequestException();
-        return getCode;
+    async generateCode() {
+        const code = Math.random().toString(10).substring(2, 8);
+        const hashedCode = await hashCode(code, 5);
+        return {code , hashedCode};
     }
 
     async checkVerifyCode({ email, code }: VerifyDto) {
@@ -43,7 +43,7 @@ export class VerifyService {
         const isCodeValid = await checkHashCode(code, result.code!);
         if (isCodeValid) {
             await this.prisma.user.update({ where: { email }, data: { isVerify: true } });
-            return {statusCode: 201 , message: "Success"}
+            return {statusCode: HttpStatus.OK , message: "Success"}
         }
         throw new BadRequestException();
     }
